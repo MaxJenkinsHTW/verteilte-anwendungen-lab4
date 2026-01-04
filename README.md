@@ -1,93 +1,171 @@
-# verteilte-anwendungen-lab4
+# Verteilte Anwendungen Übungsaufgabe 4
+
+In diesem Projekt implementieren Sie einen verteilten Microservice-Workflow zur Verarbeitung von Transaktionen über Kafka. Die Microservices kommunizieren asynchron über Kafka-Topics und jeder Service hat eine spezifische Aufgabe in der Transaktionsverarbeitungskette.
 
 
 
-## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Deadlines
+   **22.01.2026**
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-## Add your files
+### Microservices
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+1. **Transaction-Service** (Port 8081)
+   - Stellt einen REST-Endpoint bereit, um neue Transaktionen zu empfangen
+   - Validiert eingehende Transaktionen
+   - Schreibt valid Transaktionen in das `raw-transactions` Topic
+
+2. **Fraud-Alert-Service** (Port 8083)
+   - Konsumiert Transaktionen aus `raw-transactions`
+   - Prüft jede Transaktion mithilfe des Strategy Patterns auf Fraud
+   - Schreibt Fraud-Fälle in das `fraud-alerts` Topic
+   - Schreibt valid Transaktionen in das `valid-transactions` Topic
+
+3. **Notification-Service** (Port 8085)
+   - Konsumiert aus beiden Topics: `valid-transactions` und `fraud-alerts`
+   - Loggt valid Transaktionen mit `LOG.info()`
+   - Loggt Fraud Alerts mit `LOG.warn()`
+
+4. **Transfer-Service** (Port 8084/8086/8087, mehrere Instanzen möglich)
+   - Konsumiert valid Transaktionen aus `valid-transactions`
+   - Führt die eigentliche Geldüberweisung durch (Konto A → Konto B)
+   - Speichert Transaktionen und aktualisiert Kontostände in PostgreSQL
+
+### Datenfluss
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.rz.htw-berlin.de/gnaoui/verteilte-anwendungen-lab4.git
-git branch -M main
-git push -uf origin main
+Transaction-Service 
+    ↓ (raw-transactions)
+Fraud-Alert-Service
+    ├─→ (fraud-alerts) → Notification-Service
+    └─→ (valid-transactions) → Transfer-Service
+                                ↓
+                              Notification-Service
 ```
 
-## Integrate with your tools
+### Topic-Zuordnung
 
-- [ ] [Set up project integrations](https://gitlab.rz.htw-berlin.de/gnaoui/verteilte-anwendungen-lab4/-/settings/integrations)
+| Service                | Schreibt in Topic               | Liest aus Topic                    |
+|------------------------|--------------------------------|-----------------------------------|
+| Transaction-Service    | `raw-transactions`             | -                                 |
+| Fraud-Alert-Service    | `fraud-alerts`, `valid-transactions` | `raw-transactions`              |
+| Notification-Service   | -                              | `valid-transactions`, `fraud-alerts` |
+| Transfer-Service       | -                              | `valid-transactions`              |
 
-## Collaborate with your team
+---
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## Aufgabenstellung (10 Punkte)
 
-## Test and Deploy
+### Aufgabe 1: Topic-Erstellung (1 Punkt)
 
-Use the built-in continuous integration in GitLab.
+Erstellen Sie das Kafka-Topic `raw-transactions` und konfigurieren Sie es entsprechend:
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+1. Entscheiden Sie über die **Anzahl der Partitionen** (Überlegung: Skalierbarkeit, Parallelität)
+2. Bestimmen Sie die **Retention-Zeit** (Überlegung: Wie lange sollen Nachrichten gespeichert werden?)
+3. **Begründen Sie Ihre Wahl** in der Projektabgabe
+4. Testen Sie, ob Transaktionen erfolgreich über den Transaction-Service in das Topic geschrieben werden können
 
-***
+**Beispiel: POST-Request an den Transaction-Service**
 
-# Editing this README
+Um eine Transaction zu erstellen, senden Sie einen POST-Request an:
+```
+POST http://localhost:8081/api/transactions
+Content-Type: application/json
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+**Transaction JSON-Objekt:**
+```json
+{
+    "transactionId": "tx-12345",
+    "fromAccount": "DEAcc1",
+    "toAccount": "DEAcc2",
+    "amount": 100.50,
+    "currency": "EUR",
+    "timestamp": "2024-01-15T10:30:00Z"
+}
+```
 
-## Suggestions for a good README
+**Hinweise:**
+- `transactionId` und `timestamp` sind optional und werden automatisch generiert, falls nicht angegeben
+- `fromAccount` und `toAccount` sind **erforderlich** und dürfen nicht leer sein
+- `amount` muss größer als 0 sein
+- `currency` sollte angegeben werden (z.B. "EUR")
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Beispiel mit cURL:**
+```bash
+curl -X POST http://localhost:8081/api/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fromAccount": "DEAcc1",
+    "toAccount": "DEAcc2",
+    "amount": 100.50,
+    "currency": "EUR"
+  }'
+```
 
-## Name
-Choose a self-explaining name for your project.
+### Aufgabe 2: Fraud-Alert-Service (1.5 Punkte)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Der Fraud-Alert-Service liest alle Transaktionen aus dem `raw-transactions` Topic und prüft, ob es sich um Fraud handelt.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+1. Verstehen Sie den Consumer, der aus dem Topic liest und jede Transaktion prüft, ob es eine Location- oder HighAmount-Strategie ist
+2. Die Location-Strategie ist bereits implementiert. Sie müssen nur den Check für High Amount (Betrag > 10000) implementieren
+3. Erstellen Sie die beiden Topics, in die der Fraud-Service schreiben muss:
+   - Alle valid Transaktionen werden in das `valid-transactions` Topic geschrieben
+   - Alle anderen werden in das `fraud-alerts` Topic geschrieben
+4. Implementieren Sie die fehlenden Funktionen entsprechend den @TODO-Markierungen im Code
+5. Die Fraud-Erkennung nutzt das Strategy Pattern - erweitern Sie die vorhandenen Strategien
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Aufgabe 3: Notification-Service (2 Punkt)
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+1. Der Service muss beide Topics (`valid-transactions` und `fraud-alerts`) konsumieren
+2. Unterschiedliche Log-Level für unterschiedliche Nachrichtentypen verwenden:
+   - Valid Transaktionen mit `LOG.info()`
+   - Fraud Alerts mit `LOG.warn()`
+3. Bestimmen Sie: Anzahl der Partitionen, Consumer Groups und Consumer pro Group
+4. **Begründen Sie Ihre Entscheidungen** hinsichtlich Skalierbarkeit und Nachrichtenverteilung
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Aufgabe 4: Transaktionsverarbeitung implementieren (2 Punkte)
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Sie haben bisher Kafka als Publisher/Subscriber benutzt. Jetzt wollen wir es als Job Queue einsetzen.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Der Transfer-Service bekommt alle valid Transaktionen und führt die Überweisung durch.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+1. Vervollständigen Sie die Transaktionsverarbeitung im `ValidTransactionConsumer`
+2. Kontostände müssen korrekt aktualisiert werden:
+   - Betrag von Konto A abziehen
+   - Betrag zu Konto B hinzufügen
+3. Transaktionen müssen auch in der Datenbank persistiert werden (Transaktions-Tabelle)
+4. Nutzen Sie die verfügbaren Methoden des `AccountService`
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Aufgabe 5: Skalierung konfigurieren (2 Punkt)
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+1. Mehrere Instanzen des Transfer-Service können gleichzeitig laufen (3 Instanzen, siehe docker-compose Datei)
+2. Entscheiden Sie über die Kafka-Konfiguration:
+   - Anzahl der Partitionen im `valid-transactions` Topic
+   - Anzahl der Consumer Groups
+   - Anzahl der Consumer pro Group
+3. **Begründen Sie Ihre Entscheidungen** im Hinblick auf:
+   - Skalierbarkeit (wie viele Instanzen können parallel arbeiten?, consumer, consumer groups etc ... )
+   - Reihenfolge der Verarbeitung (innerhalb einer Partition muss die Reihenfolge erhalten bleiben, wie stellen wir das sicher?)
+4. Auch wenn 3 Instanzen laufen, muss eine Transaktion nur einmal durchgeführt werden, sonst droht, dass das Geld zweimal abgebucht wird
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### Aufgabe 6: Idempotenz implementieren (1.5 Punkte)
 
-## License
-For open source projects, say how it is licensed.
+**Problem**: Mit den vorherigen Aufgaben haben wir garantiert, dass Kafka nur "at-least-once" Delivery bietet - Nachrichten können mehrfach ankommen und mehrfach verarbeitet werden. Für kritische Systeme müssen wir noch eine Sache implementieren, um sicherzustellen, dass wirklich die Transaktion nur einmal ausgeführt wird (z.B. wenn ein Consumer ausgefallen ist oder so).
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**Aufgabe**: Schlagen Sie eine Lösung für Idempotenz vor.
+
+1. Mögliche Ansätze (wahlweise oder kombiniert):
+   - Deduplizierung über `transactionId`
+   - Idempotente Datenbank-Updates
+   - Prüfung, ob Transaktion bereits verarbeitet wurde
+2. Implementieren Sie Ihre gewählte Lösung
+3. **Begründen Sie Ihre gewählte Lösung** und erklären Sie, warum sie zuverlässig ist
+
+---
+
+> **Hinweis:** 
+> - Jeder Microservice hat eine eigene Readme-Datei mit weiteren Details und @TODO-Markierungen im Code
+> - Ein End-to-End-Integrationstest steht zur Verfügung, um die Funktionalität zu überprüfen
+> - Nutzen Sie Docker Compose, um alle Services gemeinsam zu starten. Das Projekt lässt sich mit `docker-compose build` bauen und mit `docker-compose up` starten
