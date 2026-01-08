@@ -62,9 +62,8 @@ Fraud-Alert-Service
 Erstellen Sie das Kafka-Topic `raw-transactions` und konfigurieren Sie es entsprechend:
 
 1. Entscheiden Sie über die **Anzahl der Partitionen** (Überlegung: Skalierbarkeit, Parallelität)
-2. Bestimmen Sie die **Retention-Zeit** (Überlegung: Wie lange sollen Nachrichten gespeichert werden?)
-3. **Begründen Sie Ihre Wahl** in der Projektabgabe
-4. Testen Sie, ob Transaktionen erfolgreich über den Transaction-Service in das Topic geschrieben werden können
+2. Bestimmen Sie den Replication-Factor und **Begründen Sie Ihre Wahl** in der Projektabgabe
+3. Testen Sie,ob Transaktionen erfolgreich über den Transaction-Service in das Topic geschrieben werden können (ggf Vervollständigen den Producer etc ....).
 
 **Beispiel: POST-Request an den Transaction-Service**
 
