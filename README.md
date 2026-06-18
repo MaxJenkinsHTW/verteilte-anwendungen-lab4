@@ -6,7 +6,7 @@ In diesem Projekt implementieren Sie einen verteilten Microservice-Workflow zur 
 
 
 ## Deadlines
-   **22.01.2026**
+   **09.07.2026**
 
 
 ### Microservices
