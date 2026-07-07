@@ -36,6 +36,20 @@ services:
     networks:
       - banking-network
 
+  kafka-init:
+    image: apache/kafka:latest
+    depends_on:
+      - kafka-broker
+    command: >
+      /bin/sh -c "
+      until /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-broker:29092 --list; do sleep 2; done &&
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic raw-transactions --partitions 3 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic valid-transactions --partitions 3 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic fraud-alerts --partitions 3 --replication-factor 1
+      "
+    networks:
+      - banking-network
+
   transaction-service:
     build:
       context: ./transaction-service
@@ -44,7 +58,8 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - kafka-broker
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8081
@@ -59,7 +74,8 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - kafka-broker
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8083
@@ -93,7 +109,8 @@ services:
     ports:
       - "8085:8085"
     depends_on:
-      - kafka-broker
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8085
@@ -110,12 +127,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      kafka-broker:
-        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8084
-      KAFKA_CONSUMER_GROUP_ID: transfer-service-group-1
+      KAFKA_CONSUMER_GROUP_ID: transfer-service-group
       QUARKUS_DATASOURCE_DB_KIND: postgresql
       QUARKUS_DATASOURCE_USERNAME: transferuser
       QUARKUS_DATASOURCE_PASSWORD: transferpass
@@ -133,12 +150,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      kafka-broker:
-        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8086
-      KAFKA_CONSUMER_GROUP_ID: transfer-service-group-2
+      KAFKA_CONSUMER_GROUP_ID: transfer-service-group
       QUARKUS_DATASOURCE_DB_KIND: postgresql
       QUARKUS_DATASOURCE_USERNAME: transferuser
       QUARKUS_DATASOURCE_PASSWORD: transferpass
@@ -156,12 +173,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      kafka-broker:
-        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:29092
       QUARKUS_HTTP_PORT: 8087
-      KAFKA_CONSUMER_GROUP_ID: transfer-service-group-3
+      KAFKA_CONSUMER_GROUP_ID: transfer-service-group
       QUARKUS_DATASOURCE_DB_KIND: postgresql
       QUARKUS_DATASOURCE_USERNAME: transferuser
       QUARKUS_DATASOURCE_PASSWORD: transferpass

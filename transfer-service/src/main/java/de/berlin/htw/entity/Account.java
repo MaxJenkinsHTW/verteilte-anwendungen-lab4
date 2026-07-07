@@ -12,7 +12,7 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "account_id")
+    @Column(name = "account_id", nullable = false, unique = true)
     private String accountId;
 
     @Column(name = "balance", nullable = false, precision = 19, scale = 2)

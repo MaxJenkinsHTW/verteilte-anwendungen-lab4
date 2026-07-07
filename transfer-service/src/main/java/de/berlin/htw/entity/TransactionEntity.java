@@ -13,7 +13,7 @@ public class TransactionEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "transaction_id", nullable = false)
+    @Column(name = "transaction_id", nullable = false, unique = true)
     private String transactionId;
 
     @Column(name = "from_account", nullable = false)

@@ -13,6 +13,9 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
+import java.time.Instant;
+import java.util.UUID;
+
 @Path("/api/transactions")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -31,6 +34,12 @@ public class TransactionResource {
         if (!validationService.isValid(tx)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Invalid transaction: missing fields or invalid amount").build();
+        }
+        if (tx.getTransactionId() == null || tx.getTransactionId().isBlank()) {
+            tx.setTransactionId(UUID.randomUUID().toString());
+        }
+        if (tx.getTimestamp() == null || tx.getTimestamp().isBlank()) {
+            tx.setTimestamp(Instant.now().toString());
         }
         rawEmitter.send(tx);
         return Response.accepted().entity(tx).build();

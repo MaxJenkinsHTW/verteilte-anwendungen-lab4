@@ -25,7 +25,12 @@ public class ValidTransactionConsumer {
                  " from " + tx.getFromAccount() + " to " + tx.getToAccount() + 
                  " amount: " + tx.getAmount());
 
-        // @TODO : here
+        boolean processed = accountService.processTransaction(tx);
+        if (processed) {
+            LOG.info("[" + consumerGroup + "] Processed transaction: " + tx.getTransactionId());
+        } else {
+            LOG.info("[" + consumerGroup + "] Skipped duplicate transaction: " + tx.getTransactionId());
+        }
 
     }
 }

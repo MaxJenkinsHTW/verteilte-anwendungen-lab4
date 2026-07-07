@@ -1,9 +1,9 @@
 package de.berlin.htw.boundary;
 
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-import jakarta.enterprise.context.ApplicationScoped;
-import de.berlin.htw.boundary.dto.Transaction;
 import de.berlin.htw.boundary.dto.FraudAlert;
+import de.berlin.htw.boundary.dto.Transaction;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -11,10 +11,15 @@ public class NotificationConsumer {
 
     private static final Logger LOG = Logger.getLogger(NotificationConsumer.class);
 
+    @Incoming("valid-transactions-in")
+    public void consumeValidTransaction(Transaction tx) {
+        LOG.info("Valid transaction: " + tx.getTransactionId() + " from " + tx.getFromAccount()
+                + " to " + tx.getToAccount() + " amount=" + tx.getAmount() + " " + tx.getCurrency());
+    }
 
-    // TODO : Hier die Methode implementieren um die Transaktionen aus der Topic "fraud-alerts, valid-transactions" zu konsumieren
-
+    @Incoming("fraud-alerts-in")
+    public void consumeFraudAlert(FraudAlert alert) {
+        LOG.warn("Fraud alert: " + alert.getAlertType() + " account=" + alert.getAccountId()
+                + " amount=" + alert.getTransactionAmount() + " severity=" + alert.getSeverity());
+    }
 }
-
-    
-

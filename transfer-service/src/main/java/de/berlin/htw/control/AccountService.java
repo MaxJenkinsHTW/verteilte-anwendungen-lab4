@@ -37,6 +37,31 @@ public class AccountService {
         return account != null ? account.getBalance().doubleValue() : 0.0;
     }
 
+    @Transactional
+    public boolean processTransaction(Transaction tx) {
+        if (transactionRepository.findByTransactionId(tx.getTransactionId()) != null) {
+            return false;
+        }
+
+        BigDecimal amount = BigDecimal.valueOf(tx.getAmount());
+        Account fromAccount = getOrCreateAccount(tx.getFromAccount());
+        Account toAccount = getOrCreateAccount(tx.getToAccount());
+
+        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
+        toAccount.setBalance(toAccount.getBalance().add(amount));
+
+        TransactionEntity entity = new TransactionEntity(
+                tx.getTransactionId(),
+                tx.getFromAccount(),
+                tx.getToAccount(),
+                amount,
+                tx.getCurrency(),
+                tx.getTimestamp()
+        );
+        transactionRepository.persist(entity);
+        return true;
+    }
+
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void updateBalance(String accountId, BigDecimal newBalance) {
         Account account = getOrCreateAccount(accountId);

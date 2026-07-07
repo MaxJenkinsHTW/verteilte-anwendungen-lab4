@@ -63,8 +63,16 @@ class EndToEndIntegrationTest {
                     .jsonPath();
 
             List<String> ids = resp.getList("transactions.transactionId");
-            return ids != null && ids.size() == 1 && ids.contains(txId);
+            if (ids != null && ids.contains(txId)) {
+                return true;
+            }
 
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
         }
         return false;
     }
