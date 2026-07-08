@@ -10,6 +10,7 @@ public class ValidationService {
         if (tx.getFromAccount() == null || tx.getFromAccount().isBlank()) return false;
         if (tx.getToAccount() == null || tx.getToAccount().isBlank()) return false;
         if (tx.getAmount() <= 0) return false;
+        if (tx.getCurrency() == null || tx.getCurrency().isBlank()) return false;
         return true;
     }
 }
