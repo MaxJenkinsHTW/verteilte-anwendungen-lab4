@@ -12,7 +12,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
-import io.smallrye.reactive.messaging.kafka.Record;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -25,7 +24,7 @@ public class TransactionResource {
 
     @Inject
     @Channel("raw-transactions-out")
-    Emitter<Record<String, Transaction>> rawEmitter;
+    Emitter<Transaction> rawEmitter;
 
     @Inject
     ValidationService validationService;
@@ -42,7 +41,7 @@ public class TransactionResource {
         if (tx.getTimestamp() == null || tx.getTimestamp().isBlank()) {
             tx.setTimestamp(Instant.now().toString());
         }
-        rawEmitter.send(Record.of(tx.getFromAccount(), tx));
+        rawEmitter.send(tx);
         return Response.accepted().entity(tx).build();
     }
 }

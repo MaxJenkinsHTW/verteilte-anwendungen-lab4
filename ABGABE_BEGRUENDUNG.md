@@ -2,7 +2,7 @@
 
 ## Topics
 
-- `raw-transactions`: 3 Partitionen, Replication Factor 1
+- `raw-transactions`: 1 Partition, Replication Factor 1
 - `valid-transactions`: 3 Partitionen, Replication Factor 1
 - `fraud-alerts`: 3 Partitionen, Replication Factor 1
 
@@ -10,7 +10,9 @@ Der Replication Factor ist 1, weil das lokale Docker-Compose-Setup nur einen Kaf
 
 ## Partitionen
 
-Es werden 3 Partitionen verwendet, damit mehrere Consumer parallel arbeiten koennen. Das passt besonders zum Transfer-Service, der in Docker Compose dreimal gestartet wird.
+Fuer `raw-transactions` wird eine Partition verwendet, weil aktuell genau eine Instanz des Fraud-Alert-Service konsumiert. Die implementierten Fraud-Strategien pruefen jede Transaktion unabhaengig, sodass fuer diesen Schritt keine parallele oder kontobezogen geordnete Verarbeitung erforderlich ist.
+
+Fuer `valid-transactions` und `fraud-alerts` werden jeweils 3 Partitionen verwendet. Das passt insbesondere zum Transfer-Service, der in Docker Compose dreimal gestartet wird und `valid-transactions` innerhalb einer gemeinsamen Consumer Group parallel verarbeitet.
 
 ## Consumer Groups
 
