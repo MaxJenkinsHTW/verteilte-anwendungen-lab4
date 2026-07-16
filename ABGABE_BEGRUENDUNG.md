@@ -4,7 +4,7 @@
 
 - `raw-transactions`: 1 Partition, Replication Factor 1
 - `valid-transactions`: 3 Partitionen, Replication Factor 1
-- `fraud-alerts`: 3 Partitionen, Replication Factor 1
+- `fraud-alerts`: 1 Partition, Replication Factor 1
 
 Der Replication Factor ist 1, weil das lokale Docker-Compose-Setup nur einen Kafka-Broker startet. Ein hoeherer Replication Factor waere erst mit mehreren Brokern moeglich.
 
@@ -12,7 +12,9 @@ Der Replication Factor ist 1, weil das lokale Docker-Compose-Setup nur einen Kaf
 
 Fuer `raw-transactions` wird eine Partition verwendet, weil aktuell genau eine Instanz des Fraud-Alert-Service konsumiert. Die implementierten Fraud-Strategien pruefen jede Transaktion unabhaengig, sodass fuer diesen Schritt keine parallele oder kontobezogen geordnete Verarbeitung erforderlich ist.
 
-Fuer `valid-transactions` und `fraud-alerts` werden jeweils 3 Partitionen verwendet. Das passt insbesondere zum Transfer-Service, der in Docker Compose dreimal gestartet wird und `valid-transactions` innerhalb einer gemeinsamen Consumer Group parallel verarbeitet.
+Fuer `fraud-alerts` wird ebenfalls eine Partition verwendet, weil aktuell nur eine Notification-Service-Instanz die unabhaengig voneinander verarbeiteten Alerts protokolliert. Bei hoeherem Nachrichtenaufkommen kann die Partitionsanzahl erhoeht und der Notification-Service horizontal skaliert werden.
+
+Fuer `valid-transactions` werden 3 Partitionen verwendet. Das passt zum Transfer-Service, der in Docker Compose dreimal gestartet wird und das Topic innerhalb einer gemeinsamen Consumer Group parallel verarbeitet.
 
 ## Consumer Groups
 
